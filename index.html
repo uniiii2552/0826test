@@ -8,31 +8,23 @@
   <div id="toast" class="toast" aria-live="polite" role="status"></div>
 </head>
 <body>
-  <!-- 只顯示圖片的頂部區，換成你的圖檔路徑即可 -->
+  <!-- Hero 橫幅圖 -->
   <header class="hero" role="banner" aria-label="糯米橋旅遊行程規劃">
     <img class="hero-logo" src="./551827384_1799857554235654_4803808063447748636_n.jpg" alt="" aria-hidden="true" />
   </header>
 
   <div class="container">
     <div class="content">
-      <!-- 上方工具列：下拉 + 加入/移除（自動避開 hero 高度） -->
-      <div class="top-bar" aria-label="快速加入/移除景點">
-        <div class="top-bar-inner">
-          <label for="quickSelect" class="sr-only">選擇景點</label>
-          <select id="quickSelect" class="quick-select"></select>
-          <div class="quick-actions">
-            <button id="quickAdd" type="button" title="加入到行程">加入行程</button>
-            <button id="quickRemove" type="button" class="btn-ghost" title="從行程移除">移除</button>
-          </div>
-        </div>
-
-        <!-- 隱藏供 JS 使用的 checkbox 清單（保留原有邏輯） -->
+      
+      <!-- 上方工具列（已移除左邊元素） -->
+      <div class="top-bar">
+        <!-- 只留右上角 FAB，不放下拉選單與加入移除 -->
         <div id="checkbox-list-container" class="visually-hidden">
           <div id="checkbox-list"></div>
         </div>
       </div>
 
-      <!-- 左側：可收合（桌機）/ 抽屜（手機） -->
+      <!-- 左側側邊欄 -->
       <aside class="sidebar" aria-label="行程面板">
         <h2>選擇景點：</h2>
 
@@ -98,13 +90,6 @@
         </div>
 
         <div class="box">
-          <h3>🔎 搜尋並加入</h3>
-          <input id="placeSearch" type="text" placeholder="輸入地點名稱或地址…" />
-          <button id="addSearchPlace" style="margin-top:8px">加入行程</button>
-          <div id="searchInfo" class="muted" style="margin-top:6px">請在上方輸入並選取一個地點。</div>
-        </div>
-
-        <div class="box">
           <h3>🍽️ 午餐建議</h3>
           <div class="row">
             <label for="lunchRadius">搜尋半徑(公尺)</label>
@@ -115,10 +100,10 @@
         </div>
       </aside>
 
-      <!-- 地圖容器（固定高度，不會消失） -->
+      <!-- 地圖容器 -->
       <div id="map" aria-label="地圖">🗺 地圖載入中...</div>
 
-      <!-- 右上角 FAB：桌機=收合側欄；手機=開關抽屜 -->
+      <!-- 右上角 FAB 按鈕 -->
       <button id="toggleSidebar" class="fab" aria-label="切換行程面板">行程</button>
       <div id="backdrop" class="backdrop" aria-hidden="true"></div>
     </div>
@@ -126,7 +111,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" defer></script>
   <script src="script.js" defer></script>
-  <!-- 若有自己的 API Key，請把 key= 後面換成你的；callback=initMap 必須保留 -->
   <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDSectxHqQ5_H3o8E1IRWsxdzzR27bEfJA&callback=initMap&v=weekly&loading=async&libraries=marker,places"
     defer
