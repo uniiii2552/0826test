@@ -93,60 +93,52 @@ const locationList = [
 
 const activeTypes = new Set(["景點", "農遊體驗", "餐廳", "民宿"]);
 
-// ================== ✨ 3D 拖曳旋轉功能 (重構版) ✨ ==================
-// 將圓環的狀態變數移到函式外部，讓其他函式可以存取
+// ================== ✨ 水平滑動功能 (重構版) ✨ ==================
+// 將滑動的狀態變數移到函式外部，讓其他函式可以存取
 let carousel = {
-  ring: null,
+  container: null,
   cards: [],
   cardCount: 0,
-  anglePerCard: 0,
-  radius: 0,
-  currentRotationAngle: 0
+  currentScrollLeft: 0,
+  cardWidth: 0
 };
 
-// 獨立出一個專門更新旋轉的函式
-function updateCarouselRotation(snapAnimation = false) {
-  if (!carousel.ring) return;
+// 獨立出一個專門更新滑動的函式
+function updateCarouselScroll(snapAnimation = false) {
+  if (!carousel.container) return;
 
   if (snapAnimation) {
-    carousel.ring.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    carousel.container.style.transition = 'scroll-left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
   } else {
-    carousel.ring.style.transition = 'none';
+    carousel.container.style.transition = 'none';
   }
-  // 使用全域 carousel 物件的狀態來更新
-  carousel.ring.style.transform = `translateZ(-${carousel.radius}px) rotateY(${carousel.currentRotationAngle}deg)`;
+  // 使用 scrollLeft 來控制水平滑動
+  carousel.container.scrollLeft = carousel.currentScrollLeft;
 }
 
 function initRingCarousel() {
-  const container = document.querySelector('.carousel-container');
-  carousel.ring = document.getElementById('checkbox-list');
+  carousel.container = document.querySelector('.top-strip');
+  const checkboxList = document.getElementById('checkbox-list');
 
-  if (!container || !carousel.ring) return;
+  if (!carousel.container || !checkboxList) return;
   
-  carousel.cards = carousel.ring.querySelectorAll('.option-card');
+  carousel.cards = checkboxList.querySelectorAll('.option-card');
   if (carousel.cards.length === 0) return;
 
   carousel.cardCount = carousel.cards.length;
-  carousel.anglePerCard = 360 / carousel.cardCount;
-  const cardWidth = carousel.cards[0].offsetWidth;
-  carousel.radius = (cardWidth / 2) / Math.tan(Math.PI / carousel.cardCount);
+  carousel.cardWidth = carousel.cards[0].offsetWidth + 16; // 包含 gap
 
   let isDragging = false;
   let startX;
-  let startRotationAngle;
-
-  carousel.cards.forEach((card, index) => {
-    const rotationAngle = index * carousel.anglePerCard;
-    card.style.transform = `rotateY(${rotationAngle}deg) translateZ(${carousel.radius}px)`;
-  });
+  let startScrollLeft;
 
   // --- 拖曳事件處理 ---
   function onDragStart(e) {
     isDragging = true;
-    container.classList.add('is-dragging');
+    carousel.container.classList.add('active');
     startX = e.pageX || e.touches[0].pageX;
-    startRotationAngle = carousel.currentRotationAngle;
-    carousel.ring.style.transition = 'none';
+    startScrollLeft = carousel.container.scrollLeft;
+    carousel.container.style.transition = 'none';
   }
 
   function onDragMove(e) {
@@ -154,29 +146,31 @@ function initRingCarousel() {
     e.preventDefault();
     const currentX = e.pageX || e.touches[0].pageX;
     const deltaX = currentX - startX;
-    const rotationChange = deltaX * 0.25;
-    carousel.currentRotationAngle = startRotationAngle + rotationChange;
-    updateCarouselRotation();
+    carousel.currentScrollLeft = startScrollLeft - deltaX;
+    carousel.container.scrollLeft = carousel.currentScrollLeft;
   }
 
   function onDragEnd() {
     if (!isDragging) return;
     isDragging = false;
-    container.classList.remove('is-dragging');
-    const closestAngle = Math.round(carousel.currentRotationAngle / carousel.anglePerCard) * carousel.anglePerCard;
-    carousel.currentRotationAngle = closestAngle;
-    updateCarouselRotation(true);
+    carousel.container.classList.remove('active');
+    
+    // 計算最接近的卡片位置
+    const cardIndex = Math.round(carousel.container.scrollLeft / carousel.cardWidth);
+    carousel.currentScrollLeft = cardIndex * carousel.cardWidth;
+    carousel.container.scrollLeft = carousel.currentScrollLeft;
   }
 
-  container.addEventListener('mousedown', onDragStart);
-  container.addEventListener('mousemove', onDragMove);
-  container.addEventListener('mouseup', onDragEnd);
-  container.addEventListener('mouseleave', onDragEnd);
-  container.addEventListener('touchstart', onDragStart, { passive: true });
-  container.addEventListener('touchmove', onDragMove);
-  container.addEventListener('touchend', onDragEnd);
+  carousel.container.addEventListener('mousedown', onDragStart);
+  carousel.container.addEventListener('mousemove', onDragMove);
+  carousel.container.addEventListener('mouseup', onDragEnd);
+  carousel.container.addEventListener('mouseleave', onDragEnd);
+  carousel.container.addEventListener('touchstart', onDragStart, { passive: true });
+  carousel.container.addEventListener('touchmove', onDragMove);
+  carousel.container.addEventListener('touchend', onDragEnd);
 
-  updateCarouselRotation(true);
+  // 初始化滑動位置
+  carousel.currentScrollLeft = 0;
 }
 
 // ================== Map Init ==================
@@ -231,8 +225,8 @@ function initMap() {
   // 手機抽屜
   initDrawerControls();
   
-  // ✨ 呼叫新的 3D 效果函式 ✨
-  init3dCarousel(document.querySelector('.top-strip'));
+  // ✨ 呼叫新的水平滑動效果函式 ✨
+  // init3dCarousel 已移除，改用 initRingCarousel 的水平滑動功能
 
   // 行動裝置旋轉後，讓地圖重算尺寸（配合 CSS 的 100dvh）
   window.addEventListener('orientationchange', () => {
@@ -397,13 +391,11 @@ function loadLocations() {
     list.appendChild(card);
       
     cb.addEventListener("change", () => {
-      // ✨ 體驗升級：點擊卡片時，將它旋轉到正前方 ✨
-      // 計算目標角度 (因為我們是逆時針為正，所以用負號)
-      const targetAngle = - (idx * carousel.anglePerCard);
-      // 為了找到最近的旋轉路徑，需要處理超過360度的情況
-      const current_rev = Math.round(carousel.currentRotationAngle / 360) * 360;
-      carousel.currentRotationAngle = current_rev + targetAngle;
-      updateCarouselRotation(true); // 呼叫旋轉並啟用動畫
+      // ✨ 體驗升級：點擊卡片時，將它滑動到可見區域 ✨
+      // 計算目標滑動位置
+      const targetScrollLeft = idx * carousel.cardWidth;
+      carousel.currentScrollLeft = targetScrollLeft;
+      carousel.container.scrollLeft = targetScrollLeft;
 
       setMarkerSelected(idx, cb.checked);
       const pos = getMarkerLatLng(idx);
@@ -1235,72 +1227,7 @@ function fmtDurationSec(sec) {
   return h > 0 ? `${h} 小時 ${m} 分` : `${m} 分`;
 }
 
-// ================== ✨ 新增：3D 旋轉效果 + 拖曳滑動功能 ✨ ==================
-function init3dCarousel(element) {
-  if (!element) return;
-
-  const cards = element.querySelectorAll('.option-card');
-  let isDown = false;
-  let startX;
-  let scrollLeft;
-
-  // 動態更新卡片 3D 效果的函式
-  function updateCards() {
-    // 取得容器可視區域的中心點
-    const containerCenterX = element.offsetWidth / 2;
-    cards.forEach(card => {
-      const cardRect = card.getBoundingClientRect();
-      const elementRect = element.getBoundingClientRect();
-      // 計算卡片中心點相對於容器左邊的距離
-      const cardCenterX = cardRect.left - elementRect.left + cardRect.width / 2;
-      
-      // 卡片中心點與容器中心點的距離，可正可負
-      const distance = cardCenterX - containerCenterX;
-
-      // 根據距離計算旋轉角度和縮放比例，這些數字可以微調以改變效果
-      const rotation = distance / 25; // 數值越小，旋轉越明顯
-      const scale = Math.max(0.85, 1 - Math.abs(distance) / 2500); // 數值越小，遠近縮放感越強
-
-      // 應用 3D 變換
-      card.style.transform = `scale(${scale}) rotateY(${rotation}deg)`;
-    });
-  }
-
-  // 頁面載入後，先執行一次，讓卡片有初始的 3D 狀態
-  // 使用 setTimeout 確保是在所有元素都渲染完成後執行
-  setTimeout(updateCards, 0);
-
-  // 監聽滾動事件，並在每次滾動時更新卡片狀態
-  element.addEventListener('scroll', () => {
-    // 使用 requestAnimationFrame 來優化動畫性能，避免卡頓
-    window.requestAnimationFrame(updateCards);
-  });
-
-  // --- 以下是拖曳滑動的邏輯 (與舊版類似) ---
-  element.addEventListener('mousedown', (e) => {
-    isDown = true;
-    element.classList.add('active');
-    startX = e.pageX - element.offsetLeft;
-    scrollLeft = element.scrollLeft;
-  });
-
-  element.addEventListener('mouseleave', () => {
-    isDown = false;
-    element.classList.remove('active');
-  });
-
-  element.addEventListener('mouseup', () => {
-    isDown = false;
-    element.classList.remove('active');
-  });
-
-  element.addEventListener('mousemove', (e) => {
-    if (!isDown) return;
-    e.preventDefault();
-    const x = e.pageX - element.offsetLeft;
-    const walk = (x - startX) * 2.5; // 可以把這個數字調大 (例如 2.5 或 3) 讓拖曳更靈敏
-    element.scrollLeft = scrollLeft - walk;
-  });
-}
+// ================== ✨ 已移除：3D 旋轉效果，改用水平滑動功能 ✨ ==================
+// 原本的 init3dCarousel 函式已移除，現在使用 initRingCarousel 的水平滑動功能
 
 window.initMap = initMap;
