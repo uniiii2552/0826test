@@ -5,26 +5,54 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>糯米橋旅遊行程規劃</title>
   <link rel="stylesheet" href="style.css" />
+
+  <!-- 放大地圖圖示（AdvancedMarker content） -->
+  <style>
+    /* 加大 marker；同時做成白底圓形更清楚 */
+    .emoji-marker{
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;          /* emoji 大小 */
+      line-height: 1;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 9999px;
+      box-shadow: 0 4px 10px rgba(0,0,0,.18);
+      user-select: none;
+    }
+    .emoji-marker.selected{
+      transform: scale(1.08);
+      border-color: #9a6700;    /* 與主色一致 */
+      box-shadow: 0 6px 16px rgba(154,103,0,.35);
+    }
+    @media (min-width: 1024px){
+      .emoji-marker{ width: 50px; height: 50px; font-size: 32px; }
+    }
+  </style>
+
+  <!-- Toast 容器 -->
   <div id="toast" class="toast" aria-live="polite" role="status"></div>
 </head>
 <body>
-  <!-- Hero 橫幅圖 -->
+  <!-- Hero 橫幅圖（滿版） -->
   <header class="hero" role="banner" aria-label="糯米橋旅遊行程規劃">
     <img class="hero-logo" src="./551827384_1799857554235654_4803808063447748636_n.jpg" alt="" aria-hidden="true" />
   </header>
 
   <div class="container">
     <div class="content">
-      
-      <!-- 上方工具列（已移除左邊元素） -->
+
+      <!-- 上方工具列（已精簡，只作為定位用；不放左側方塊） -->
       <div class="top-bar">
-        <!-- 只留右上角 FAB，不放下拉選單與加入移除 -->
         <div id="checkbox-list-container" class="visually-hidden">
           <div id="checkbox-list"></div>
         </div>
       </div>
 
-      <!-- 左側側邊欄 -->
+      <!-- 側邊面板 -->
       <aside class="sidebar" aria-label="行程面板">
         <h2>選擇景點：</h2>
 
@@ -90,6 +118,13 @@
         </div>
 
         <div class="box">
+          <h3>🔎 搜尋並加入</h3>
+          <input id="placeSearch" type="text" placeholder="輸入地點名稱或地址…" />
+          <button id="addSearchPlace" style="margin-top:8px">加入行程</button>
+          <div id="searchInfo" class="muted" style="margin-top:6px">請在上方輸入並選取一個地點。</div>
+        </div>
+
+        <div class="box">
           <h3>🍽️ 午餐建議</h3>
           <div class="row">
             <label for="lunchRadius">搜尋半徑(公尺)</label>
@@ -100,15 +135,16 @@
         </div>
       </aside>
 
-      <!-- 地圖容器 -->
+      <!-- 地圖 -->
       <div id="map" aria-label="地圖">🗺 地圖載入中...</div>
 
-      <!-- 右上角 FAB 按鈕 -->
+      <!-- 右上角 FAB -->
       <button id="toggleSidebar" class="fab" aria-label="切換行程面板">行程</button>
       <div id="backdrop" class="backdrop" aria-hidden="true"></div>
     </div>
   </div>
 
+  <!-- libs & app -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" defer></script>
   <script src="script.js" defer></script>
   <script
