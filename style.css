@@ -4,7 +4,8 @@
   --brand-light: rgba(154, 103, 0, 0.1); /* 淡褐色 */
   --danger: #ef4444;      /* 紅色 */
   
-  --bg: #fdfaf2;          /* 背景：非常淡的米黃色 */
+  /* 這裡已調整為你要的背景色 */
+  --bg: #D6C88E;          /* 整頁背景：糯米橋主色 */
   --card: #fffcf5;        /* ✨ 卡片與側邊欄背景：溫暖的奶油黃 ✨ */
   --border: #f0e9d9;      /* 邊框：略深的米色 */
   
@@ -41,14 +42,14 @@ h1 { margin: 0; padding: 16px 24px; font-size: 24px; position: relative; z-index
 .content { position: relative; flex-grow: 1; }
 #map { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
 
-/* === 頂部圖卡列 (3D 效果基礎) === */
+/* === 頂部圖卡列 (水平滑動效果) === */
 .top-strip {
   position: absolute; top: 12px;
   left: calc(360px + 20px + 20px); right: 20px;
   z-index: 10; padding: 20px 0;
   overflow-x: auto; white-space: nowrap; cursor: grab; user-select: none;
   scrollbar-width: none; -ms-overflow-style: none;
-  perspective: 800px;
+  scroll-behavior: smooth;
 }
 .top-strip::-webkit-scrollbar { display: none; }
 .top-strip.active { cursor: grabbing; cursor: -webkit-grabbing; }
@@ -57,17 +58,16 @@ h1 { margin: 0; padding: 16px 24px; font-size: 24px; position: relative; z-index
 #checkbox-list {
   display: flex; flex-wrap: nowrap; gap: 16px;
   padding: 0 20px;
-  transform-style: preserve-3d;
 }
 
-/* === 圖卡選項 (3D 效果) === */
+/* === 圖卡選項 (水平滑動效果) === */
 .option-card {
   display: inline-flex; flex-direction: column; width: 180px; flex-shrink: 0; white-space: normal; padding: 16px;
   border: 1px solid var(--border); border-radius: var(--radius-lg); cursor: pointer; user-select: none;
   background-color: var(--card); box-shadow: var(--shadow-md);
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s, background-color 0.2s, border-color 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s, background-color 0.2s, border-color 0.2s;
 }
-.option-card:hover { transform: translateY(-4px) !important; box-shadow: var(--shadow-lg); }
+.option-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
 .option-card .name { font-weight: 600; margin-bottom: 4px; font-size: 15px;}
 .option-card .details { font-size: 13px; color: var(--muted); }
 .option-card:has(input:checked) {
@@ -159,7 +159,6 @@ button:active { transform: scale(0.98) translateY(0); }
     left: 16px;
     right: 16px;
     top: 0;
-    perspective: 400px;
   }
   #checkbox-list { gap: 12px; }
   .top-strip .option-card { width: 150px; }
