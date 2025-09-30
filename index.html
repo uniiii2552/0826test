@@ -8,20 +8,14 @@
   <div id="toast" class="toast" aria-live="polite" role="status"></div>
 </head>
 <body>
-
-  <!-- ✅ 新增：最上方 hero 圖片/標題區 -->
+  <!-- 只顯示圖片的頂部區，換成你的圖檔路徑即可 -->
   <header class="hero" role="banner" aria-label="糯米橋旅遊行程規劃">
-    <!-- 換成你的圖檔路徑即可 -->
-    <img class="hero-logo" src="./551827384_1799857554235654_4803808063447748636_n.jpg" alt="糯米橋旅遊行程規劃 Logo" />
-    <div class="hero-text">
-      <h1>糯米橋旅遊行程規劃</h1>
-      <small>Nuomi Bridge Agritourism Planner</small>
-    </div>
+    <img class="hero-logo" src="./551827384_1799857554235654_4803808063447748636_n.jpg" alt="" aria-hidden="true" />
   </header>
 
   <div class="container">
     <div class="content">
-      <!-- ✅ 取代原本頂部卡片列：改成下拉選單 + 加入/移除 -->
+      <!-- 上方工具列：下拉 + 加入/移除（自動避開 hero 高度） -->
       <div class="top-bar" aria-label="快速加入/移除景點">
         <div class="top-bar-inner">
           <label for="quickSelect" class="sr-only">選擇景點</label>
@@ -32,17 +26,16 @@
           </div>
         </div>
 
-        <!-- 保留舊的 checkbox 容器供程式使用，但隱藏不顯示 -->
+        <!-- 隱藏供 JS 使用的 checkbox 清單（保留原有邏輯） -->
         <div id="checkbox-list-container" class="visually-hidden">
           <div id="checkbox-list"></div>
         </div>
       </div>
 
-      <!-- 左：側欄（桌機：可收合；手機：抽屜） -->
-      <div class="sidebar" aria-label="行程面板">
+      <!-- 左側：可收合（桌機）/ 抽屜（手機） -->
+      <aside class="sidebar" aria-label="行程面板">
         <h2>選擇景點：</h2>
 
-        <!-- 類型篩選 -->
         <div class="box">
           <h3>🎯 類型篩選</h3>
           <div class="filters">
@@ -57,7 +50,6 @@
           </div>
         </div>
 
-        <!-- 規劃設定 -->
         <div class="box">
           <h3>⚙️ 規劃設定</h3>
           <label for="startSelect">起點：</label>
@@ -83,7 +75,6 @@
           </div>
         </div>
 
-        <!-- 已選行程 -->
         <div class="selected box">
           <h2>❤️ 已選行程（可拖曳）</h2>
           <ol id="selected-list" class="sortable-list"></ol>
@@ -93,11 +84,9 @@
             <button id="clearSelected" type="button" class="btn-danger">清空已選</button>
           </div>
 
-          <!-- 行程表容器 -->
           <div id="itinerary"></div>
         </div>
 
-        <!-- 一鍵套用 PDF 行程 -->
         <div class="box">
           <h3>📋 官方行程</h3>
           <div class="preset-grid">
@@ -108,7 +97,6 @@
           <div class="note">會自動勾選景點、帶入預設停留、出發 09:00、開車模式。</div>
         </div>
 
-        <!-- 搜尋並加入 -->
         <div class="box">
           <h3>🔎 搜尋並加入</h3>
           <input id="placeSearch" type="text" placeholder="輸入地點名稱或地址…" />
@@ -116,7 +104,6 @@
           <div id="searchInfo" class="muted" style="margin-top:6px">請在上方輸入並選取一個地點。</div>
         </div>
 
-        <!-- 午餐建議 -->
         <div class="box">
           <h3>🍽️ 午餐建議</h3>
           <div class="row">
@@ -126,12 +113,12 @@
           <button id="suggestLunch">在附近找餐廳</button>
           <div id="lunchResults" style="margin-top:8px;font-size:13px;"></div>
         </div>
-      </div>
+      </aside>
 
-      <!-- 右：地圖 -->
+      <!-- 地圖容器（固定高度，不會消失） -->
       <div id="map" aria-label="地圖">🗺 地圖載入中...</div>
 
-      <!-- ✅ 調整：圓形按鈕放在地圖上方（桌機/手機共用），用來收合/展開面板 -->
+      <!-- 右上角 FAB：桌機=收合側欄；手機=開關抽屜 -->
       <button id="toggleSidebar" class="fab" aria-label="切換行程面板">行程</button>
       <div id="backdrop" class="backdrop" aria-hidden="true"></div>
     </div>
@@ -139,6 +126,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" defer></script>
   <script src="script.js" defer></script>
+  <!-- 若有自己的 API Key，請把 key= 後面換成你的；callback=initMap 必須保留 -->
   <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDSectxHqQ5_H3o8E1IRWsxdzzR27bEfJA&callback=initMap&v=weekly&loading=async&libraries=marker,places"
     defer
