@@ -8,17 +8,37 @@
   <div id="toast" class="toast" aria-live="polite" role="status"></div>
 </head>
 <body>
-  <div class="container">
-    <h1>糯米橋旅遊行程規劃</h1>
 
+  <!-- ✅ 新增：最上方 hero 圖片/標題區 -->
+  <header class="hero" role="banner" aria-label="糯米橋旅遊行程規劃">
+    <!-- 若你的檔名不同，請把 src 換成你的圖檔名稱 -->
+    <img class="hero-logo" src="./551827384_1799857554235654_4803808063447748636_n.jpg" alt="糯米橋休閒農業區 Logo" />
+    <div class="hero-text">
+      <h1>糯米橋旅遊行程規劃</h1>
+      <small>Nuomi Bridge Agritourism Planner</small>
+    </div>
+  </header>
+
+  <div class="container">
     <div class="content">
-      <div class="top-strip">
-        <div id="checkbox-list-container" class="box">
+      <!-- ✅ 取代原本頂部卡片列：改成下拉選單 + 加入/移除 -->
+      <div class="top-bar" aria-label="快速加入/移除景點">
+        <div class="top-bar-inner">
+          <label for="quickSelect" class="sr-only">選擇景點</label>
+          <select id="quickSelect" class="quick-select"></select>
+          <div class="quick-actions">
+            <button id="quickAdd" type="button" title="加入到行程">加入行程</button>
+            <button id="quickRemove" type="button" class="btn-ghost" title="從行程移除">移除</button>
+          </div>
+        </div>
+
+        <!-- 保留舊的 checkbox 容器供程式使用，但隱藏不顯示 -->
+        <div id="checkbox-list-container" class="visually-hidden">
           <div id="checkbox-list"></div>
         </div>
       </div>
 
-      <!-- 左：側欄（桌機）／抽屜（手機） -->
+      <!-- 左：側欄（桌機：可收合；手機：抽屜） -->
       <div class="sidebar" aria-label="行程面板">
         <h2>選擇景點：</h2>
 
@@ -60,7 +80,6 @@
             <button id="planRoute">建議排序規劃</button>
             <button id="clearRoute" class="btn-ghost">清除路線</button>
             <button id="exportLink" class="btn-ghost">在 Google 地圖開啟</button>
-          </button>
           </div>
         </div>
 
@@ -74,7 +93,7 @@
             <button id="clearSelected" type="button" class="btn-danger">清空已選</button>
           </div>
 
-          <!-- ★ 先行預留行程表容器（原本程式會動態建立，預留更穩定） -->
+          <!-- 行程表容器 -->
           <div id="itinerary"></div>
         </div>
 
@@ -112,8 +131,8 @@
       <!-- 右：地圖 -->
       <div id="map" aria-label="地圖">🗺 地圖載入中...</div>
 
-      <!-- 手機：浮動開關與遮罩 -->
-      <button id="toggleSidebar" class="fab" aria-label="開啟行程面板">行程</button>
+      <!-- ✅ 調整：圓形按鈕放在地圖上方（桌機/手機共用），用來收合/展開面板 -->
+      <button id="toggleSidebar" class="fab" aria-label="切換行程面板">行程</button>
       <div id="backdrop" class="backdrop" aria-hidden="true"></div>
     </div>
   </div>
