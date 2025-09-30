@@ -1,19 +1,16 @@
 /*************************************************
- * Nuomi Map Tour — script.js（修正版：括號齊全）
- * - 地圖/路線/午餐/拖曳/LocalStorage
- * - 上方下拉加入/移除
- * - 官方行程：applyPresetByNames()
- * - 桌機側欄收合、手機抽屜
+ * Nuomi Map Tour — script.js（含搜尋與加入）
  *************************************************/
 let map, markers = [];
 let directionsService, directionsRenderer, infoWindow;
 let sortable = null, lastOrderedSeq = null, lastDirectionsResult = null;
-let placesService, lunchTempMarkers = [], autocomplete, pendingPlace = null;
+let placesService, lunchTempMarkers = [];
+let autocomplete, lastPickedPlace = null, tempSearchMarker = null;
 
 const STORAGE_KEY = "nuomi_tour_state_v1";
 const emojiByType = { "景點":"📍","農遊體驗":"🌾","餐廳":"🍽️","民宿":"🏡","自訂":"✨" };
 const defaultStayByType = { "景點":30,"農遊體驗":90,"餐廳":60,"民宿":0,"自訂":30 };
-const activeTypes = new Set(["景點","農遊體驗","餐廳","民宿"]);
+const activeTypes = new Set(["景點","農遊體驗","餐廳","民宿","自訂"]);
 function getEmojiForType(t){ return emojiByType[t] || "📍"; }
 
 /* === 景點資料（名稱需與官方行程一致） === */
@@ -67,72 +64,138 @@ function initMap(){
   infoWindow = new google.maps.InfoWindow();
   placesService = new google.maps.places.PlacesService(map);
 
+  // 主要初始化
   populateStartSelect();
   loadLocations();
-  populateQuickSelect();
   bindGlobalControls();
-  bindQuickActions();
   restoreState();
   initDrawerControls();
+
+  // 啟用搜尋自動完成
+  initSearchAutocomplete();
 
   window.addEventListener("orientationchange", () => {
     setTimeout(() => google.maps.event.trigger(map, "resize"), 300);
   });
 }
 
-/* ============== 上方下拉：資料與事件 ============== */
-function populateQuickSelect(){
-  const sel = document.getElementById("quickSelect");
-  if (!sel) return;
+/* ============== 搜尋並加入 ============== */
+function initSearchAutocomplete(){
+  const input = document.getElementById("placeSearch");
+  const btnAdd = document.getElementById("addSearchPlace");
+  const infoBox = document.getElementById("searchInfo");
+  if (!input) return;
 
-  sel.innerHTML = "";
-  const groups = new Map();
+  // Google Places Autocomplete
+  autocomplete = new google.maps.places.Autocomplete(input, {
+    fields: ["geometry","name","formatted_address","place_id"],
+    types: ["establishment","geocode"]
+  });
 
-  for (const loc of locationList) {
-    if (!groups.has(loc.type)) groups.set(loc.type, []);
-    groups.get(loc.type).push(loc);
-  }
+  autocomplete.addListener("place_changed", () => {
+    const place = autocomplete.getPlace();
+    if (!place || !place.geometry || !place.geometry.location) {
+      infoBox && (infoBox.textContent = "找不到地點，請再試一次。");
+      return;
+    }
+    lastPickedPlace = place;
 
-  for (const [type, arr] of groups) {
-    const og = document.createElement("optgroup");
-    og.label = type;
-    arr.forEach((loc) => {
-      const idx = locationList.findIndex((x) => x.name === loc.name);
-      const opt = document.createElement("option");
-      opt.value = String(idx);
-      opt.textContent = `${getEmojiForType(loc.type)} ${loc.name}`;
-      og.appendChild(opt);
+    // 顯示標記
+    if (tempSearchMarker) { tempSearchMarker.setMap(null); tempSearchMarker = null; }
+    tempSearchMarker = new google.maps.Marker({
+      position: place.geometry.location,
+      map,
+      title: place.name
     });
-    sel.appendChild(og);
+    map.panTo(place.geometry.location);
+    if (map.getZoom() < 16) map.setZoom(16);
+
+    // 顯示名稱與地址
+    const addr = place.formatted_address || "";
+    infoBox && (infoBox.innerHTML = `
+      <div style="margin-top:6px;line-height:1.5">
+        <strong>${escapeHtml(place.name || "未命名地點")}</strong><br>
+        <span style="color:#666">${escapeHtml(addr)}</span>
+      </div>
+    `);
+  });
+
+  // 按下「加入行程」
+  if (btnAdd) {
+    btnAdd.addEventListener("click", () => {
+      if (!lastPickedPlace || !lastPickedPlace.geometry) {
+        showToast("請先在上方輸入並選取一個地點。");
+        return;
+      }
+      const lat = lastPickedPlace.geometry.location.lat();
+      const lng = lastPickedPlace.geometry.location.lng();
+      const name = lastPickedPlace.name || "自訂地點";
+      const addr = lastPickedPlace.formatted_address || "";
+
+      addCustomPlaceToList({ name, lat, lng, address: addr });
+      showToast(`已加入：${name}`);
+    });
   }
 }
 
-function bindQuickActions(){
-  const addBtn = document.getElementById("quickAdd");
-  const rmBtn  = document.getElementById("quickRemove");
-  if (addBtn) addBtn.addEventListener("click", () => quickToggle(true));
-  if (rmBtn)  rmBtn.addEventListener("click", () => quickToggle(false));
-}
+function addCustomPlaceToList(place){
+  // 如果已存在同名就不重複加入
+  let idx = locationList.findIndex(x => x.name === place.name && Math.abs(x.lat - place.lat) < 1e-6 && Math.abs(x.lng - place.lng) < 1e-6);
+  if (idx === -1) {
+    // 1) 放進資料
+    locationList.push({ name: place.name, type: "自訂", lat: place.lat, lng: place.lng, address: place.address });
+    idx = locationList.length - 1;
 
-function quickToggle(checked){
-  const sel = document.getElementById("quickSelect");
-  if (!sel) return;
-  const idx = Number(sel.value);
-  const cb  = document.getElementById(`cb-${idx}`);
-  if (!cb) return;
+    // 2) 建立 marker
+    const marker = createMarkerWithFallback(locationList[idx], idx);
+    markers[idx] = marker;
 
-  cb.checked = !!checked;
-  setMarkerSelected(idx, !!checked);
+    // 3) 建立「隱藏」的 checkbox 行（沿用原本流程）
+    const list = document.getElementById("checkbox-list");
+    const card = document.createElement("label");
+    card.className = "option-card";
+    card.dataset.index = String(idx);
+    card.dataset.type = "自訂";
 
-  const pos = getMarkerLatLng(idx);
-  map.panTo(pos);
-  if (map.getZoom() < 15) map.setZoom(15);
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.id = `cb-${idx}`;
+    cb.dataset.index = String(idx);
+    cb.className = "d-none";
 
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "name";
+    nameSpan.textContent = `${getEmojiForType("自訂")} ${place.name}`;
+
+    const detailsSpan = document.createElement("span");
+    detailsSpan.className = "details";
+    detailsSpan.textContent = place.address ? `自訂｜${place.address}` : "自訂";
+
+    card.appendChild(cb);
+    card.appendChild(nameSpan);
+    card.appendChild(detailsSpan);
+    list.appendChild(card);
+
+    cb.addEventListener("change", () => {
+      setMarkerSelected(idx, cb.checked);
+      const pos = getMarkerLatLng(idx);
+      map.panTo(pos);
+      if (map.getZoom() < 15) map.setZoom(15);
+      rebuildSelectedList();
+      saveState();
+      const n = getSelectedIndicesFromList().length;
+      if (n >= 2) planRouteFromOrder(); else clearRoute();
+    });
+  }
+
+  // 4) 勾選並加入已選清單
+  const cb = document.getElementById(`cb-${idx}`);
+  if (cb) {
+    cb.checked = true;
+    setMarkerSelected(idx, true);
+  }
   rebuildSelectedList();
   saveState();
-
-  const n = getSelectedIndicesFromList().length;
-  if (n >= 2) planRouteFromOrder(); else clearRoute();
 }
 
 /* ============== 固定控制 ============== */
@@ -1104,6 +1167,9 @@ function getCurrentPositionPromise(){
       enableHighAccuracy: true, timeout: 8000
     })
   );
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 /* 讓 Google Maps callback 能找到 initMap */
